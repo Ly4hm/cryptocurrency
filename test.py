@@ -59,7 +59,7 @@ class SignatureMachine:
     def unblind_signature(self, blinded_signature: bytes) -> bytes:
         "签名去盲化"
         n = self.public_key.public_numbers().n
-        blinded_signature_int = int.from_bytes(blinded_signature, "big")
+        blinded_signature_int = int.from_bytes(blinded_signature, "big")        
         # 计算r的模逆元
         r_inv = pow(self.r, -1, n)
         # 计算去盲化后的签名
@@ -74,11 +74,9 @@ class SignatureMachine:
     def sign_message(self, message: bytes) -> bytes:
         # 消息盲化
         blinded_message = self.blind_message(message)
-
+        
         # 使用私钥对消息进行签名
-        blinded_signature = self.private_key.sign(
-            blinded_message, padding.PKCS1v15(), hashes.SHA256()
-        )
+        blinded_signature = self.private_key.sign(blinded_message, padding.PKCS1v15(), hashes.SHA256())
         signature = self.unblind_signature(blinded_signature)
         return signature
 
@@ -107,7 +105,6 @@ def test_signature_machine():
     # 生成普通签名
     signature = signature_machine.sign_message_without_blind(message)
     print("Generated Signature hash:", hashlib.md5(signature).digest().hex())
-    print("Is the signature valid?", signature_machine.verify_signature(message, signature))
 
     # 生成盲签名
     signature_b = signature_machine.sign_message(message)
@@ -115,9 +112,9 @@ def test_signature_machine():
 
     # 验证签名
     is_valid = signature_machine.verify_signature(message, signature_b)
-    print("Is the blinded signature valid?", is_valid)
+    print("Is the signature valid?", is_valid)
     # assert(is_valid == True)
-
+    
     print(len(signature), len(signature_b))
 
     # 尝试验证一个伪造的签名（应当返回 False）
