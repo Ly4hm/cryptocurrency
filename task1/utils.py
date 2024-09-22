@@ -50,11 +50,19 @@ class SignatureMachine:
 
     def blind_message(self, message: bytes) -> bytes:
         "盲化消息"
-        message_int = int.from_bytes(message, "big")
-        blinded_message = (
-            pow(self.r, self.public_key.public_numbers().e) * message_int
-        ) % self.public_key.public_numbers().n
-        return self.convert_to_bytes(blinded_message)
+        # message_int = int.from_bytes(message, "big")
+        # blinded_message = (
+        #     pow(self.r, self.public_key.public_numbers().e) * message_int
+        # ) % self.public_key.public_numbers().n
+        # return self.convert_to_bytes(blinded_message)
+        digest = hashlib.sha256(message).digest()
+        message_int = int.from_bytes(digest, "big")
+        n = self.public_key.public_numbers().n
+        e = self.public_key.public_numbers().e
+
+        r_e = pow(self.r, e, n)
+        blinded_message_int = (message_int * r_e) % n
+        return self.convert_to_bytes(blinded_message_int)
 
     def unblind_signature(self, blinded_signature: bytes) -> bytes:
         "签名去盲化"
@@ -68,29 +76,64 @@ class SignatureMachine:
 
     def sign_message_without_blind(self, message: bytes) -> bytes:
         # 使用私钥对消息进行签名
-        signature = self.private_key.sign(message, padding.PKCS1v15(), hashes.SHA256())
-        return signature
+        # signature = self.private_key.sign(message, padding.PKCS1v15(), hashes.SHA256())
+        # return signature
+        # Get private key numbers
+        private_numbers = self.private_key.private_numbers()
+        d = private_numbers.d
+        n = private_numbers.public_numbers.n
+
+        # 将盲化消息转换为整数
+        blinded_m_int = int.from_bytes(message, byteorder='big')
+
+        # 计算签名 s' = (blinded_m_int)^d mod n
+        s_prime_int = pow(blinded_m_int, d, n)
+
+        # 将签名转换为字节
+        blinded_signature = s_prime_int.to_bytes((n.bit_length() + 7) // 8, byteorder='big')
+        return blinded_signature
 
     def sign_message(self, message: bytes) -> bytes:
-        # 消息盲化
+        # 每次生成盲化消息时，确保生成新的盲因子
+        self.r = self._generate_blind_factor()
+        # 盲化消息
         blinded_message = self.blind_message(message)
-
-        # 使用私钥对消息进行签名
-        blinded_signature = self.private_key.sign(
-            blinded_message, padding.PKCS1v15(), hashes.SHA256()
-        )
+        # 获取私钥参数
+        private_numbers = self.private_key.private_numbers()
+        d = private_numbers.d
+        n = private_numbers.public_numbers.n
+        # 将盲化消息转换为整数
+        blinded_m_int = int.from_bytes(blinded_message, byteorder='big')
+        # 计算盲签名 s' = (blinded_m_int)^d mod n
+        s_prime_int = pow(blinded_m_int, d, n)
+        # 将盲签名转换为字节
+        blinded_signature = s_prime_int.to_bytes((n.bit_length() + 7) // 8, byteorder='big')
+        # 去盲化签名
         signature = self.unblind_signature(blinded_signature)
         return signature
 
     def verify_signature(self, message: bytes, signature: bytes) -> bool:
         # 使用公钥验证签名
-        try:
-            self.public_key.verify(
-                signature, message, padding.PKCS1v15(), hashes.SHA256()
-            )
-            return True
-        except cryptography.exceptions.InvalidSignature:
-            return False
+        # try:
+        #     self.public_key.verify(
+        #         signature, message, padding.PKCS1v15(), hashes.SHA256()
+        #     )
+        #     return True
+        # except cryptography.exceptions.InvalidSignature:
+        #     return False
+        public_numbers = self.public_key.public_numbers()
+        e = public_numbers.e
+        n = public_numbers.n
+
+        s_int = int.from_bytes(signature, byteorder='big')
+
+        # 计算 m' = (s_int)^e mod n
+        m_prime_int = pow(s_int, e, n)
+
+        digest = hashlib.sha256(message).digest()
+        m_int = int.from_bytes(digest, byteorder='big')
+
+        return m_prime_int == m_int
 
     def convert_to_bytes(self, value: int) -> bytes:
         "将内容转化为bytes"

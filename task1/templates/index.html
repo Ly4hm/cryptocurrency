@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSA Blind Signature Transaction</title>
+</head>
+<body>
+    <h2>RSA Blind Signature Payment System</h2>
+
+    <label for="buyer">Choose Buyer:</label>
+    <select id="buyer">
+        <option value="buyer1">Buyer 1</option>
+        <option value="buyer2">Buyer 2</option>
+    </select>
+
+    <br><br>
+
+    <label for="seller">Choose Seller:</label>
+    <select id="seller">
+        <option value="seller1">Seller 1</option>
+    </select>
+
+    <br><br>
+
+    <label for="amount">Amount:</label>
+    <input type="number" id="amount" placeholder="Enter amount">
+
+    <br><br>
+
+    <button onclick="makeTransaction()">Submit Transaction</button>
+
+    <br><br>
+
+    <h3 id="result"></h3>
+
+    <script>
+        function makeTransaction() {
+            var buyer = document.getElementById("buyer").value;
+            var seller = document.getElementById("seller").value;
+            var amount = document.getElementById("amount").value;
+
+            fetch('/request_signature', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    buyer: buyer,
+                    seller: seller,
+                    amount: amount
+                }),
+            }).then(response => response.json())
+                .then(data => {
+                    var blinded_message = data.blinded_message;
+
+                    return fetch('/sign_blinded_message', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            blinded_message: blinded_message
+                        }),
+                    });
+                })
+                .then(response => response.json())
+                .then(data => {
+                    var blinded_signature = data.blinded_signature;
+                    return fetch('/verify_transaction', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        buyer: buyer,
+                        seller: seller,
+                        amount: amount,
+                        blinded_signature: blinded_signature
+                    }),
+                });
+                })
+                .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('result').innerText = `Transaction successful! Buyer balance: ${data.buyer_balance}, Seller balance: ${data.seller_balance}`;
+                } else {
+                    document.getElementById('result').innerText = `Error: ${data.message}`;
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        }
+    </script>
+</body>
+</html>
