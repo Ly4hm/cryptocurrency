@@ -9,7 +9,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import utils
-
+from Crypto.PublicKey import RSA
 
 class SignatureMachine:
     """
@@ -95,6 +95,10 @@ class SignatureMachine:
     def convert_to_bytes(self, value: int) -> bytes:
         "将内容转化为bytes"
         return value.to_bytes((value.bit_length() + 7) // 8, byteorder="big")
+    def rsa_key(self):
+        rsa_key = RSA.generate(2048)
+        print(rsa_key)
+        print(type(rsa_key))
 
 
 def test_signature_machine():
