@@ -107,3 +107,4 @@ if __name__ == "__main__":
 #     print(message_signed)
 #
 #     print(signature_machine.verify(message_signed))
+    
