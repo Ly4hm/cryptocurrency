@@ -4,10 +4,8 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from bank_server.utils import *
+from bank.utils import *
 
-
-# TODO: 为盲签名算法实现单元测试
 class TestRSABlindSignature(unittest.TestCase):
     """RSA 盲签名相关单元测试"""
 
@@ -25,6 +23,12 @@ class TestRSABlindSignature(unittest.TestCase):
         signature = blind_device.unblind_signature(signature_b)
         # 签名验证
         self.assertTrue(signature_machine.verify_signature(message, signature))
+
+        # 尝试验证一个伪造的签名（应当返回 False）
+        forged_signature = signature[:-1] + bytes(
+            [signature_b[-1] ^ 0x01]
+        )  # 修改签名的最后一位
+        self.assertFalse(signature_machine.verify_signature(message, forged_signature))
 
 
 if __name__ == "__main__":

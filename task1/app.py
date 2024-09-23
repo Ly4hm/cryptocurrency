@@ -1,8 +1,8 @@
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from flask import Flask, jsonify, render_template, request
-from bank_server.utils import SignatureMachine
-# TODO: 修改为RPC调用
+from bank.utils import SignatureMachine
+
 
 app = Flask(__name__)
 

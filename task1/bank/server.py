@@ -1,28 +1,19 @@
-from typing import Any
-import uuid
+import os
+import pickle
 import sqlite3
+import sys
+
+from datetime import datetime
+from typing import Any
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from model.coin import Coin
+from model.user import User
 
 
-class Currency:
-    "货币"
-
-    def __init__(self, owner) -> None:
-        self.uid = uuid.uuid4()
-        self.owner = owner
-
-    @property
-    def get_uid(self):
-        "uid读取器"
-        return str(self.uid)
-
-    @property
-    def get_owner(self) -> str:
-        "读取所有者"
-        return self.owner
-
-
-class CurrencyPrinter:
-    "印钞机"
+class DataMap:
+    "中央银行数据管理类"
 
     def __init__(self, database: str) -> None:
         self.conn = sqlite3.connect(database)
@@ -50,15 +41,14 @@ CREATE TABLE IF NOT EXISTS Currency (
 
 class Bank:
     """中央银行"""
-
     def __init__(self) -> None:
         pass
 
-    def grant(owner: str):
-        "发放货币"
-        currency = Currency(owner)
+    def sign_coin(coin_without_signature: bytes):
+        "将 coin 数据签名，coin 数据为 pickle 序列化后的 Currency 数据"
+        pass
 
 
 if __name__ == "__main__":
-    c = Currency("ff")
+    c = Coin()
     print(c.uid)

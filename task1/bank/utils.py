@@ -108,36 +108,3 @@ class SignatureMachine:
     def get_pub_key(self):
         "返回公钥"
         return self.public_key
-
-
-def test_signature_machine():
-    "测试函数"
-    # 实例化 SignatureMachine
-    signature_machine = SignatureMachine()
-
-    # 原始消息
-    message = b"Test message for RSA signature"
-
-    # 生成盲签名
-    signature_b = signature_machine.sign_message(message)
-    print("Generated Blinded Signature hash:", hashlib.md5(signature_b).digest().hex())
-
-    # 验证签名
-    is_valid = signature_machine.verify_signature(message, signature_b)
-    print("Is the blinded signature valid?", is_valid)
-    assert is_valid == True
-
-    # print(len(signature), len(signature_b))
-
-    # 尝试验证一个伪造的签名（应当返回 False）
-    forged_signature = signature_b[:-1] + bytes(
-        [signature_b[-1] ^ 0x01]
-    )  # 修改签名的最后一位
-    is_valid_forged = signature_machine.verify_signature(message, forged_signature)
-    print("Is the forged signature valid?", is_valid_forged)
-    assert is_valid_forged == False
-
-
-# 运行测试
-if __name__ == "__main__":
-    test_signature_machine()
