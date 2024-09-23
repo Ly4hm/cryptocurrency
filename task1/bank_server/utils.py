@@ -2,40 +2,16 @@ import hashlib
 import math
 import os
 
-import cryptography
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding, rsa, utils
 
 
-class SignatureMachine:
-    """
-    基于 RSA 盲签名的签名器
+class BlindingDevice:
+    """RSA 盲签名消息盲化器"""
 
-    Attributes:
-        public_key - rsa 公钥
-        private_key - rsa 私钥
-
-    Func:
-        签名调用：
-            sign(message: str) -> signature: str
-            输出格式：<message>:<signature>
-        验证调用：
-            verify(message_and_signature: str) -> bool
-            true 验证通过，反之失败
-            message_and_signature 参数格式：<message>:<signature>
-    """
-    
-    # TODO： 分离签名与盲化算法
-
-    def __init__(self):
-        # 生成一个新的 RSA 私钥
-        self.private_key = rsa.generate_private_key(
-            public_exponent=65537, key_size=2048
-        )
-        # 获取与之对应的公钥
-        self.public_key = self.private_key.public_key()
-
+    def __init__(self, public_key) -> None:
         # 获取盲因子
+        self.public_key = public_key
         self.r = self._generate_blind_factor()
 
     def _generate_blind_factor(self):
@@ -67,12 +43,38 @@ class SignatureMachine:
         signature = (blinded_signature_int * r_inv) % n
         return self.convert_to_bytes(signature)
 
+    def convert_to_bytes(self, value: int) -> bytes:
+        "将内容转化为bytes"
+        return value.to_bytes((value.bit_length() + 7) // 8, byteorder="big")
 
-    def sign_message(self, message: bytes) -> bytes:
-        # 每次生成盲化消息时，确保生成新的盲因子
-        self.r = self._generate_blind_factor()
-        # 盲化消息
-        blinded_message = self.blind_message(message)
+
+class SignatureMachine:
+    """
+    基于 RSA 盲签名的签名器
+
+    Attributes:
+        public_key - rsa 公钥
+        private_key - rsa 私钥
+
+    Func:
+        签名调用：
+            sign(message: str) -> signature: str
+            输出格式：<message>:<signature>
+        验证调用：
+            verify(message_and_signature: str) -> bool
+            true 验证通过，反之失败
+            message_and_signature 参数格式：<message>:<signature>
+    """
+
+    def __init__(self):
+        # 生成一个新的 RSA 私钥
+        self.private_key = rsa.generate_private_key(
+            public_exponent=65537, key_size=2048
+        )
+        # 获取与之对应的公钥
+        self.public_key = self.private_key.public_key()
+
+    def sign_message(self, blinded_message: bytes) -> bytes:
         # 获取私钥参数
         private_numbers = self.private_key.private_numbers()
         d = private_numbers.d
@@ -85,9 +87,7 @@ class SignatureMachine:
         blinded_signature = s_prime_int.to_bytes(
             (n.bit_length() + 7) // 8, byteorder="big"
         )
-        # 去盲化签名
-        signature = self.unblind_signature(blinded_signature)
-        return signature
+        return blinded_signature
 
     def verify_signature(self, message: bytes, signature: bytes) -> bool:
         # 使用公钥验证签名
@@ -105,12 +105,13 @@ class SignatureMachine:
 
         return m_prime_int == m_int
 
-    def convert_to_bytes(self, value: int) -> bytes:
-        "将内容转化为bytes"
-        return value.to_bytes((value.bit_length() + 7) // 8, byteorder="big")
+    def get_pub_key(self):
+        "返回公钥"
+        return self.public_key
 
 
 def test_signature_machine():
+    "测试函数"
     # 实例化 SignatureMachine
     signature_machine = SignatureMachine()
 
@@ -124,7 +125,7 @@ def test_signature_machine():
     # 验证签名
     is_valid = signature_machine.verify_signature(message, signature_b)
     print("Is the blinded signature valid?", is_valid)
-    assert(is_valid == True)
+    assert is_valid == True
 
     # print(len(signature), len(signature_b))
 
@@ -134,7 +135,7 @@ def test_signature_machine():
     )  # 修改签名的最后一位
     is_valid_forged = signature_machine.verify_signature(message, forged_signature)
     print("Is the forged signature valid?", is_valid_forged)
-    assert(is_valid_forged == False)
+    assert is_valid_forged == False
 
 
 # 运行测试
