@@ -5,6 +5,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from bank.utils import *
+from client.utils import *
 
 class TestRSABlindSignature(unittest.TestCase):
     """RSA 盲签名相关单元测试"""

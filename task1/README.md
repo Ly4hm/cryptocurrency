@@ -25,5 +25,8 @@
 
 这套系统通过盲化签名技术，确保了交易的不可追溯性，同时保持了虚拟货币与现实货币的价值联动。
 
-## Coin 实现
-pickle 序列化后的数据
+## Coin 实现及设计规范
+pickle 序列化 Coin （model/coin.py） 类后的数据
+Coin 货币、Coin 中的签名的传输过程中均为 base64 编码后的字符串
+
+公钥的分发中传输的是 RSAPublicKey 对象 pickle 序列化 后经过 base64 编码的数据
