@@ -1,7 +1,8 @@
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from flask import Flask, jsonify, render_template, request
-from utils import SignatureMachine
+from bank.utils import SignatureMachine
+
 
 app = Flask(__name__)
 
@@ -107,4 +108,3 @@ if __name__ == "__main__":
 #     print(message_signed)
 #
 #     print(signature_machine.verify(message_signed))
-    
