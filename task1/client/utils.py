@@ -10,6 +10,9 @@ class BlindingDevice:
         # 获取盲因子
         self.public_key = public_key
         self.r = self._generate_blind_factor()
+        
+        # 用来给刷新盲因子加锁
+        self.unverified_flag = False
 
     def _generate_blind_factor(self):
         "生成盲因子r"
@@ -21,6 +24,8 @@ class BlindingDevice:
 
     def blind_message(self, message: bytes) -> bytes:
         "盲化消息"
+        self.unverified_flag = True
+        
         digest = hashlib.sha256(message).digest()
         message_int = int.from_bytes(digest, "big")
         n = self.public_key.public_numbers().n
@@ -32,6 +37,8 @@ class BlindingDevice:
 
     def unblind_signature(self, blinded_signature: bytes) -> bytes:
         "签名去盲化"
+        self.unverified_flag = False
+        
         n = self.public_key.public_numbers().n
         blinded_signature_int = int.from_bytes(blinded_signature, "big")
         # 计算r的模逆元
@@ -43,3 +50,13 @@ class BlindingDevice:
     def convert_to_bytes(self, value: int) -> bytes:
         "将内容转化为bytes"
         return value.to_bytes((value.bit_length() + 7) // 8, byteorder="big")
+
+    def fresh_r(self) -> bool:
+        """
+        刷新 盲因子 r
+        - Return: 是否刷新成功
+        - 刷新不成功主要是因为当前盲因子还未使用过，可能造成无法解盲化"""
+        if self.unverified_flag:
+            return False
+        self.r = self._generate_blind_factor()
+        return True

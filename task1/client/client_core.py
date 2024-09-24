@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import os
 import pickle
 import sys
@@ -27,18 +28,30 @@ class Client:
         loaded_pub_key_bytes = pickle.loads(pub_key_pickle)
         self.public_key = serialization.load_pem_public_key(loaded_pub_key_bytes)
 
+        # 盲化器
+        self.blind_device = BlindingDevice(self.public_key)
+
     def make_coin(self, expiry_date: datetime = None) -> str:
         "生成货币数据"
+        # 盲化货币
         coin_without_signature = Coin(expiry_date)
-        # TODO: 结合server_core
+        coin_without_signature_pickle = pickle.dumps(coin_without_signature)
+        blinded_coin = self.blind_device.blind_message(coin_without_signature_pickle)
 
-        coin = coin_without_signature
+        # 签名
+        blinded_signature = self.get_signature(blinded_coin)
+        signature = self.blind_device.unblind_signature(blinded_signature)
 
-        return base64.b64encode(pickle.dumps(coin)).decode("utf-8")
-    
-    def get_signature(self, blinded_coin_without_signature_base64:str) -> bytes:
-        "获取签名"
-        # TODO: 获取签名
+        coin_with_signature = "{}:{}".format(
+            base64.b64encode(coin_without_signature_pickle).decode("utf-8"),
+            base64.b64encode(signature).decode("utf-8"),
+        )
+
+        return coin_with_signature
+
+    def get_signature(self, blinded_coin: bytes) -> bytes:
+        "获取签名, 返回signature的base64解码后字节流"
+        # TODO: 向server_core获取签名, 通信通过 http/https 实现
         pass
 
     def view_coin(self, coin_b: str) -> tuple:
@@ -46,15 +59,31 @@ class Client:
         coin = pickle.loads(base64.b64decode(coin_b))
         return (coin.uid, coin.expiry_date)
 
-    def blind_coin(self, public_key):
-        "盲化货币"
-        # TODO: 盲化货币
-        pass
-
     def verify_coin(self, coin: str) -> bool:
-        "验证货币"
-        # TODO: 验证货币
-        pass
+        """验证货币
+        此处 coin 格式为 make_coin 方法生成的字符串格式"""
+        # TODO: 添加对 coin 格式的校验
+        # TODO: 添加对 coin 有效期的校验
+        # 从字符串格式的 coin 中提取数据
+        coin_pickle, signature = coin.split(":")
+        coin_pickle = base64.b64decode(coin_pickle)
+        signature = base64.b64decode(signature)
+        
+        # 使用公钥验证签名
+        public_numbers = self.public_key.public_numbers()
+        e = public_numbers.e
+        n = public_numbers.n
+
+        s_int = int.from_bytes(signature, byteorder="big")
+
+        # 计算 m' = (s_int)^e mod n
+        m_prime_int = pow(s_int, e, n)
+
+        message_hash = hashlib.sha256(coin_pickle).digest()
+        m_int = int.from_bytes(message_hash, byteorder="big")
+
+        return m_prime_int == m_int
+
 
 if __name__ == "__main__":
     client = Client(
