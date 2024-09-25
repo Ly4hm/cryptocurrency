@@ -59,8 +59,8 @@ def register():
         return jsonify({"error": "缺少密码"}), 400
 
     try:
-        bank.register(password)
-        return jsonify({"message": "账号注册成功"})
+        userid = bank.register(password)
+        return jsonify({"message": "账号注册成功","userid": userid})
     except Exception as e:
         return jsonify({"error": f"出错了: {str(e)}"}), 500
 
