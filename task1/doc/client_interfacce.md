@@ -4,6 +4,13 @@ Client 类用于实现用户相关的操作，包括消息盲化、签名验证�
 
 ## 方法
 
+## 构造函数
+
+### `__init__`
+```python
+__init__(pub_key_base64: str, userid: str, server_url: str) -> None
+
+
 ### make_coin
 ```python
 make_coin(expiry_date: datetime = None) -> str
@@ -29,8 +36,6 @@ get_signature(blinded_coin: bytes) -> bytes
 - blinded_coin: 盲化后的货币字节流。
 
 **返回**: 返回签名的 Base64 解码后的字节流。
-
-**注意: 此方法尚未实现。**
 
 ### view_coin
 ```python

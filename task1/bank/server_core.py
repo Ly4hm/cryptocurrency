@@ -28,7 +28,7 @@ class DataMap:
         # 创建 user 表
         self.cursor.execute(
             """
-CREATE TABLE user (
+CREATE TABLE user IF NOT EXISTS user(
     userid TEXT PRIMARY KEY CHECK (LENGTH(userid) = 5),
     password TEXT NOT NULL,
     count INTEGER NOT NULL
@@ -39,7 +39,7 @@ CREATE TABLE user (
         # 创建 used_coin 表
         self.cursor.execute(
             """
-CREATE TABLE used_coin (
+CREATE TABLE used_coin IF NOT EXISTS used_coin(
     coin_uuid TEXT NOT NULL,
     time INTEGER NOT NULL,
     PRIMARY KEY (coin_uuid)
@@ -48,7 +48,7 @@ CREATE TABLE used_coin (
         )
         self.conn.commit()
 
-    def __reduce__(self) -> str | tuple[Any, ...]:
+    def __reduce__(self):
         "垃圾处理"
         self.conn.close()
         self.cursor.close()
@@ -59,8 +59,8 @@ CREATE TABLE used_coin (
         userid = "".join(random.choices(string.ascii_letters + string.digits, k=5))
 
         # 输入密码并进行哈希
-        passwd = input("请输入密码: ")
-        hashed_passwd = hashlib.sha256(passwd.encode()).hexdigest()
+        # passwd = input("请输入密码: ")
+        hashed_passwd = hashlib.sha256(password.encode()).hexdigest()
         # 插入用户数据
         self.cursor.execute(
             """
@@ -71,6 +71,7 @@ CREATE TABLE used_coin (
         )
 
         self.conn.commit()
+
 
     def deduct_sign_chance(self, userid) -> bool:
         """扣除一次签名机会，返回是否扣除成功"""
@@ -94,7 +95,7 @@ CREATE TABLE used_coin (
         self.cursor.execute(
             """
         UPDATE user
-        SET count = count - 1
+        SET count = count + 1
         WHERE userid = ? AND count > 0
         """,
             (userid,),
@@ -141,7 +142,7 @@ class Bank:
         )
         
         # 扣除签名次数
-        self.data_map.add_sign_chance(userid)
+        self.data_map.deduct_sign_chance(userid)
 
         return base64.b64encode(blinded_signature).decode("utf-8")
 
@@ -175,6 +176,25 @@ class Bank:
     def register(self,  passwd):
         """注册新用户"""
         self.data_map.register(passwd)
+
+    def verify_coin_signature(self, coin_base64: str, signature_base64: str) -> bool:
+        """
+        验证货币的签名是否有效
+
+        Args:
+            coin_base64 (str): base64 编码的序列化货币数据
+            signature_base64 (str): base64 编码的签名数据
+
+        Returns:
+            bool: 签名是否有效
+        """
+        try:
+            coin_bytes = base64.b64decode(coin_base64)
+            signature_bytes = base64.b64decode(signature_base64)
+            return self.signature_machine.verify_signature(coin_bytes, signature_bytes)
+        except Exception as e:
+            print(f"Verification failed: {e}")
+            return False
 
 
 if __name__ == "__main__":
