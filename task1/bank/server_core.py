@@ -53,8 +53,9 @@ CREATE TABLE used_coin IF NOT EXISTS used_coin(
         self.conn.close()
         self.cursor.close()
 
-    def register(self, password: str, init_count=10):
-        "注册一个用户，id为 5位 随机字符串， passwd 为 hash 后的32位字符串，初始赠送10次签名机会"
+    def register(self, password: str, init_count=10) -> str:
+        """注册一个用户，id为 5位 随机字符串， passwd 为 hash 后的32位字符串，初始赠送10次签名机会
+        Return: userid 用户标识符"""
         # 生成 5 位随机 userid
         userid = "".join(random.choices(string.ascii_letters + string.digits, k=5))
 
@@ -71,6 +72,8 @@ CREATE TABLE used_coin IF NOT EXISTS used_coin(
         )
 
         self.conn.commit()
+        
+        return userid
 
 
     def deduct_sign_chance(self, userid) -> bool:
@@ -173,9 +176,9 @@ class Bank:
         else:
             return False
         
-    def register(self,  passwd):
+    def register(self,  passwd) -> str:
         """注册新用户"""
-        self.data_map.register(passwd)
+        return self.data_map.register(passwd)
 
     def verify_coin_signature(self, coin_base64: str, signature_base64: str) -> bool:
         """
