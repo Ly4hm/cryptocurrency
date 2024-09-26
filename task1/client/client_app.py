@@ -31,7 +31,6 @@ parser.add_argument(
 subparsers = parser.add_subparsers(dest="sub_command_name")
 parser_generate = subparsers.add_parser("generate", help="生成coin")
 parser_view = subparsers.add_parser("view", help="查看coin信息")
-parser_verify = subparsers.add_parser("verify", help="验证签名")
 parser_exchange = subparsers.add_parser("exchange", help="交换货币为签名机会")
 parser_register = subparsers.add_parser("register", help="用户注册")
 
@@ -56,16 +55,13 @@ parser_view.add_argument(
     "-c", "--coin", required=True, type=str, help="需要验证的coin路径"
 )
 
-# 验证签名
-parser_verify.add_argument(
-    "-c", "--coin", required=True, type=str, help="需要验证的coin路径"
-)
 
 # 用户注册逻辑
 parser_register.add_argument("-p", "--password", required=True, help="用户密码")
 
 # 交换货币为签名机会
 parser_exchange.add_argument("-u", "--userid", required=True, type=str, help="用户ID")
+parser_exchange.add_argument("-p", "--password", required=True, help="用户密码")
 parser_exchange.add_argument(
     "-c", "--coin", required=True, type=str, help="coin 文件路径"
 )

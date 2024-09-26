@@ -80,18 +80,31 @@ class Runner:
         except Exception as e:
             return Result.err(f"coin 写入失败 {e}")
 
-    def exchange(self, coin: str, userid: str) -> int:
+    def exchange(self, args) -> Result:
         """兑现coin"""
         url = self.server_addr + "exchange"
         headers = {"Content-Type": "application/json"}
-        data = {"coin": coin, "userid": userid}
+        try:
+            with open(args.coin, "r") as coin_file:
+                coin = coin_file.read().strip()
+
+        except Exception as e:
+            return Result.err(f"Error: {e}")
+
+        data = {"coin": coin, "userid": self.userid}
+        
         try:
             response = requests.post(url, headers=headers, json=data)
 
             if response.status_code == 200:
-                return Result.ok()
+                return Result.ok("Coin 验证成功")
+            elif response.status_code == 400:
+                return Result.err("Coin 验证失败")
+            
+            else:
+                return Result.err(f"错误：{response.status_code}")
 
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             return Result.err(str(e))
 
     def verify_user(self) -> bool:

@@ -37,7 +37,7 @@ def exchange():
         if bank.exchange(coin, userid):
             return jsonify({"message": "交换成功"})
         else:
-            return jsonify({"message": "交换失败"}), 400
+            return jsonify({"message": "交换成功"})
     except Exception as e:
         return jsonify({"message": f"出错了: {str(e)}"}), 500
 
