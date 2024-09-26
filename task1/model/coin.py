@@ -13,9 +13,12 @@ class Coin:
         self.signature: bytes = None
 
     def __str__(self) -> str:
-        return "UUID:{}\n过期时间:{}".format(
-            self.uid, self.expiry_date.strftime("%Y-%m-%d %H:%M:%S")
-        )
+        try:
+            expiry_time = self.expiry_date.strftime("%Y-%m-%d %H:%M:%S")
+        except:
+            expiry_time = "Never"
+
+        return "UUID:{}\n过期时间:{}".format(self.uid, expiry_time)
 
     @property
     def uid(self):
