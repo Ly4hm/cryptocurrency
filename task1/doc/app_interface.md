@@ -1,4 +1,3 @@
-```markdown
 # Flask 应用接口文档
 
 ## 概述

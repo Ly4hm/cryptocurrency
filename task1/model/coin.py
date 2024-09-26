@@ -12,6 +12,11 @@ class Coin:
         self.expiry_date = expiry_date
         self.signature: bytes = None
 
+    def __str__(self) -> str:
+        return "UUID:{}\n过期时间:{}".format(
+            self.uid, self.expiry_date.strftime("%Y-%m-%d %H:%M:%S")
+        )
+
     @property
     def uid(self):
         "uid读取器"

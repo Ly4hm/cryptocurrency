@@ -1,5 +1,6 @@
+import hashlib
 from flask import Flask, jsonify, request
-from bank.server_core import Bank
+from server_core import Bank
 
 app = Flask(__name__)
 
@@ -14,13 +15,13 @@ def sign_coin():
     userid = data.get("userid")
 
     if not blinded_coin_without_signature_base64 or not userid:
-        return jsonify({"error": "缺少参数"}), 400
+        return jsonify({"message": "缺少参数"}), 400
 
     try:
         signature = bank.sign_coin(blinded_coin_without_signature_base64, userid)
         return jsonify({"signature": signature})
     except Exception as e:
-        return jsonify({"error": f"出错了: {str(e)}"}), 500
+        return jsonify({"message": f"出错了: {str(e)}"}), 500
 
 
 @app.route("/exchange", methods=["POST"])
@@ -30,7 +31,7 @@ def exchange():
     userid = data.get("userid")
 
     if not coin or not userid:
-        return jsonify({"error": "缺少参数"}), 400
+        return jsonify({"message": "缺少参数"}), 400
 
     try:
         if bank.exchange(coin, userid):
@@ -38,7 +39,7 @@ def exchange():
         else:
             return jsonify({"message": "交换失败"}), 400
     except Exception as e:
-        return jsonify({"error": f"出错了: {str(e)}"}), 500
+        return jsonify({"message": f"出错了: {str(e)}"}), 500
 
 
 @app.route("/deliver_pubkey", methods=["GET"])
@@ -47,7 +48,7 @@ def deliver_pubkey():
         pubkey = bank.deliver_pub_key()
         return jsonify({"public_key": pubkey})
     except Exception as e:
-        return jsonify({"error": f"出错了，原因为 {str(e)}"}), 500
+        return jsonify({"message": f"出错了，原因为 {str(e)}"}), 500
 
 
 @app.route("/register", methods=["POST"])
@@ -56,13 +57,13 @@ def register():
     password = data.get("password")
 
     if not password:
-        return jsonify({"error": "缺少密码"}), 400
+        return jsonify({"message": "缺少密码"}), 400
 
     try:
         userid = bank.register(password)
-        return jsonify({"message": "账号注册成功","userid": userid})
+        return jsonify({"message": f"账号注册成功: {userid}"})
     except Exception as e:
-        return jsonify({"error": f"出错了: {str(e)}"}), 500
+        return jsonify({"message": f"出错了: {str(e)}"}), 500
 
 
 @app.route("/verify_signature", methods=["POST"])
@@ -79,7 +80,7 @@ def verify_signature():
     signature_base64 = data.get("signature_base64")
 
     if not coin_base64 or not signature_base64:
-        return jsonify({"error": "缺少参数"}), 400
+        return jsonify({"message": "缺少参数"}), 400
 
     try:
         is_valid = bank.verify_coin_signature(coin_base64, signature_base64)
@@ -88,8 +89,27 @@ def verify_signature():
         else:
             return jsonify({"valid": False, "message": "签名无效"}), 400
     except Exception as e:
-        return jsonify({"error": f"出错了: {str(e)}"}), 500
+        return jsonify({"message": f"出错了: {str(e)}"}), 500
+
+
+@app.route("/verify_user", methods=["POST"])
+def verify_user():
+    """判断用户是否有效"""
+    data = request.get_json()
+    userid = data.get("userid")
+    passwd = data.get("passwd")
+
+    if not userid or not passwd:
+        return jsonify({"message": "缺少参数"}), 400
+
+    try:
+        if bank.verify_user(userid, passwd):
+            return jsonify({"message": f"验证成功"}), 200
+        else:
+            return jsonify({"message": f"验证失败"}), 400
+    except Exception as e:
+        return jsonify({"message": f"出错了: {str(e)}"}), 500    
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=8008)
+    app.run(debug=True, port=8008, host="0.0.0.0")

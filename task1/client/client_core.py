@@ -48,6 +48,10 @@ class Client:
 
     def make_coin(self, expiry_date: datetime = None) -> str:
         "生成货币数据"
+        # 检查参数
+        if not self.userid:
+            raise Exception("无userid")
+        
         # 盲化货币
         coin_without_signature = Coin(expiry_date)
         coin_without_signature_pickle = pickle.dumps(coin_without_signature)
@@ -67,7 +71,7 @@ class Client:
     def get_signature(self, blinded_coin: bytes) -> bytes:
         "获取签名, 返回signature的base64解码后字节流"
         try:
-            url = f"{self.server_url}/sign_coin"
+            url = f"{self.server_url}sign_coin"
             payload = {
                 "blinded_coin_without_signature_base64": base64.b64encode(blinded_coin).decode("utf-8"),
                 "userid": self.userid

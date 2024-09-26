@@ -1,6 +1,16 @@
+import base64
+from datetime import datetime, time
 import hashlib
 import math
 import os
+import pickle
+import sys
+
+import requests
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from model.result import Result
 
 
 class BlindingDevice:
@@ -10,7 +20,7 @@ class BlindingDevice:
         # 获取盲因子
         self.public_key = public_key
         self.r = self._generate_blind_factor()
-        
+
         # 用来给刷新盲因子加锁
         self.unverified_flag = False
 
@@ -25,7 +35,7 @@ class BlindingDevice:
     def blind_message(self, message: bytes) -> bytes:
         "盲化消息"
         self.unverified_flag = True
-        
+
         digest = hashlib.sha256(message).digest()
         message_int = int.from_bytes(digest, "big")
         n = self.public_key.public_numbers().n
@@ -38,7 +48,7 @@ class BlindingDevice:
     def unblind_signature(self, blinded_signature: bytes) -> bytes:
         "签名去盲化"
         self.unverified_flag = False
-        
+
         n = self.public_key.public_numbers().n
         blinded_signature_int = int.from_bytes(blinded_signature, "big")
         # 计算r的模逆元
@@ -60,3 +70,6 @@ class BlindingDevice:
             return False
         self.r = self._generate_blind_factor()
         return True
+
+
+

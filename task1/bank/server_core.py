@@ -22,24 +22,24 @@ class DataMap:
     "中央银行数据管理类"
 
     def __init__(self, database: str) -> None:
-        self.conn = sqlite3.connect(database)
+        self.conn = sqlite3.connect(database, check_same_thread=False)
         self.cursor = self.conn.cursor()
 
         # 创建 user 表
         self.cursor.execute(
             """
-CREATE TABLE user IF NOT EXISTS user(
+CREATE TABLE IF NOT EXISTS "user" (
     userid TEXT PRIMARY KEY CHECK (LENGTH(userid) = 5),
     password TEXT NOT NULL,
     count INTEGER NOT NULL
-)
+);
 """
         )
 
         # 创建 used_coin 表
         self.cursor.execute(
             """
-CREATE TABLE used_coin IF NOT EXISTS used_coin(
+CREATE TABLE IF NOT EXISTS "used_coin" (
     coin_uuid TEXT NOT NULL,
     time INTEGER NOT NULL,
     PRIMARY KEY (coin_uuid)
@@ -72,9 +72,8 @@ CREATE TABLE used_coin IF NOT EXISTS used_coin(
         )
 
         self.conn.commit()
-        
-        return userid
 
+        return userid
 
     def deduct_sign_chance(self, userid) -> bool:
         """扣除一次签名机会，返回是否扣除成功"""
@@ -121,6 +120,29 @@ CREATE TABLE used_coin IF NOT EXISTS used_coin(
 
         self.conn.commit()
 
+    def is_user_valid(self, username, passwd):
+        """判断用户是否有效"""
+        try:
+            # 执行查询，检查是否存在匹配的用户名和密码
+            self.cursor.execute(
+                """
+                SELECT * FROM user WHERE userid = ? AND password = ?
+            """,
+                (username, passwd),
+            )
+
+            # 获取查询结果
+            result = self.cursor.fetchone()
+
+            # 如果查询结果不为空，表示用户存在且密码正确
+            if result:
+                return True
+            else:
+                return False
+        except sqlite3.Error as e:
+            print(f"数据库错误: {e}")
+            return False
+
 
 class Bank:
     """中央银行"""
@@ -143,7 +165,7 @@ class Bank:
         blinded_signature = self.signature_machine.sign_message(
             blinded_coin_without_signature
         )
-        
+
         # 扣除签名次数
         self.data_map.deduct_sign_chance(userid)
 
@@ -168,17 +190,20 @@ class Bank:
         signature = base64.b64decode(signature)
         if self.signature_machine.verify_signature(coin, signature):
             uuid = pickle.loads(coin).uid
-            
+
             # 更新数据库
             self.data_map.insert_used_coin(uuid)
             self.data_map.add_sign_chance(userid)
             return True
         else:
             return False
-        
-    def register(self,  passwd) -> str:
+
+    def register(self, passwd) -> str:
         """注册新用户"""
         return self.data_map.register(passwd)
+    
+    def verify_user(self, userid, passwd):
+        return self.data_map.is_user_valid(userid, passwd)
 
     def verify_coin_signature(self, coin_base64: str, signature_base64: str) -> bool:
         """
