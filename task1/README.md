@@ -28,8 +28,11 @@
 ## Coin 实现及设计规范
 pickle 序列化 Coin （model/coin.py） 类后的数据
 Coin 货币、Coin 中的签名的传输过程中均为 base64 编码后的字符串
+## 重新设计 Coin
+Coin 的原始信息不是uid，而是x和y两个参数，x，y满足一下公式
+
 
 公钥的分发中传输的是 RSAPublicKey 对象 pickle 序列化 后经过 base64 编码的数据
 
 ## TODO
-有一些小 Bug 还需要修，就是不知道还有没有机会修
+有一些小 Bug 还需要修

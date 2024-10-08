@@ -92,7 +92,7 @@ def respond_to_challenges():
     for i, zi in enumerate(challenges):
         idx = i % len(x_i)  # 确保索引不越界
         if zi == 1:
-            response = [x_i[idx], a_i[idx], y_i[idx]]
+            response = [a_i[idx], c_i[idx], y_i[idx]]
         else:
             uid_v_i = u + str(v + idx)
             ai_exp = xor_strings(a_i[idx], uid_v_i)
