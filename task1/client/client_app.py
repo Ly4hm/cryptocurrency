@@ -33,6 +33,7 @@ parser_generate = subparsers.add_parser("generate", help="生成coin")
 parser_view = subparsers.add_parser("view", help="查看coin信息")
 parser_exchange = subparsers.add_parser("exchange", help="交换货币为签名机会")
 parser_register = subparsers.add_parser("register", help="用户注册")
+parser_trade = subparsers.add_parser("trade", help="用户之间的货币传输")
 
 
 # 生成货币
