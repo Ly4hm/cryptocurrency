@@ -13,6 +13,7 @@ n = key.n
 e = key.e
 d = key.d
 
+
 # 存储交易信息
 transaction_store = [] #[(zi,data[]),......]
 users = []
@@ -81,6 +82,20 @@ def verify_transaction():
                     double_spending_detected = True
                     break
 
+
+            if double_spending_detected:
+                break
+
+        # 交易重复性判别
+        if data in transaction_store.values():
+            return "交易重复",400
+
+        # 存储交易
+        transaction_store.setdefault(xi, []).append((zi, data))
+        if transactions["store"]:
+            pickle.dump(transaction_store, open("transaction_store.pickle", "wb"))
+
+            
     if double_spending_detected:
         return jsonify({'status': 'failed', 'error': 'Double spending detected', 'payer_identity': u_value}), 400
 
