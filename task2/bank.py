@@ -4,6 +4,7 @@ import random
 from Crypto.PublicKey import RSA
 import hashlib
 import pickle
+import re
 
 app = Flask(__name__)
 
@@ -16,7 +17,7 @@ d = key.d
 
 # 存储交易信息
 transaction_store = [] #[(zi,data[]),......]
-users = []
+users = ['User123','User256','User749']
 
 if os.path.exists("transaction_store.pickle"):
     transaction_store = pickle.load(open("transaction_store.pickle", "rb"))
@@ -76,12 +77,11 @@ def verify_transaction():
             
         else:
             for _,data_stored in transaction_store:
-                u_value = recover_u_from_data(data[0], data_stored[1])
+                u_value = recover_u_from_data(data_stored[1], data[0])
                 
                 if u_value in users:
                     double_spending_detected = True
                     break
-
 
             if double_spending_detected:
                 break
@@ -95,7 +95,7 @@ def verify_transaction():
         if transactions["store"]:
             pickle.dump(transaction_store, open("transaction_store.pickle", "wb"))
 
-            
+          
     if double_spending_detected:
         return jsonify({'status': 'failed', 'error': 'Double spending detected', 'payer_identity': u_value}), 400
 
@@ -105,16 +105,24 @@ def verify_transaction():
         data = transaction['data']
         transaction_store.append((zi, data))
 
-    if transactions["store"]:
-        pickle.dump(transaction_store, open("transaction_store.pickle", "wb"))
+
+    #if transactions["store"]:
+        #pickle.dump(transaction_store, open("transaction_store.pickle", "wb"))
     
     return jsonify({'status': 'success'})
 
-def recover_u_from_data(ai_exp_hex, ai):
+def recover_u_from_data(ai_exp_hex: str, ai):
     # ai_exp = ai ** (u || (v + i))
     # 因此 (ai_exp ** ai) = u || (v + i)
-    ai_bytes = ai.encode('utf-8')
-    ai_exp_bytes = bytes.fromhex(ai_exp_hex)
+    if is_hex_string(ai):
+        ai_bytes = bytes.fromhex(ai)
+    else:    
+        ai_bytes = ai.encode('utf-8')
+
+    if is_hex_string(ai_exp_hex):
+        ai_exp_bytes = bytes.fromhex(ai_exp_hex)
+    else:
+        ai_exp_bytes = ai_exp_hex.encode('utf-8') 
 
     # 异或恢复 u_v_i
     u_v_i_bytes = bytes(a ^ b for a, b in zip(ai_exp_bytes, ai_bytes))
@@ -124,6 +132,10 @@ def recover_u_from_data(ai_exp_hex, ai):
     u_bytes = u_v_i_bytes[:u_length]
     u = u_bytes.decode('utf-8', errors='ignore')
     return u
+
+def is_hex_string(s):
+    return re.fullmatch(r'[0-9a-fA-F]+', s) is not None
+
 
 if __name__ == "__main__":
     app.run(port=5000)
