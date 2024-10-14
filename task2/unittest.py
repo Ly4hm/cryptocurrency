@@ -18,4 +18,5 @@ def test_spend():
         print("Spend test failed:", response.json())
 
 test_withdraw()
+test_spend()
 test_spend() 
