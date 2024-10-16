@@ -4,6 +4,7 @@ import random
 from Crypto.PublicKey import RSA
 import hashlib
 import pickle
+import re
 
 app = Flask(__name__)
 
@@ -13,8 +14,11 @@ n = key.n
 e = key.e
 d = key.d
 
-# 存储交易信息 + 本地存储的交易信息加载
-transaction_store = {}  # {xi: [(zi, data), ...]}
+
+# 存储交易信息
+transaction_store = [] #[(zi,data[]),......]
+users = ['User123','User256','User749']
+
 if os.path.exists("transaction_store.pickle"):
     transaction_store = pickle.load(open("transaction_store.pickle", "rb"))
 
@@ -50,7 +54,7 @@ def verify_and_sign():
     for msg in blinded_messages:
         S = pow(msg, d, n)
         signed_messages.append(S)
-
+    
     return jsonify({'signed_messages': signed_messages})
 
 @app.route('/verify_transaction', methods=['POST'])
@@ -62,25 +66,20 @@ def verify_transaction():
     for transaction in transactions:
         zi = transaction['zi']
         data = transaction['data']
-
-        xi = data[0]  # xi 作为交易标识
-
-        if xi in transaction_store:
-            # 检查是否有不一致的交易
-            for stored_zi, stored_data in transaction_store[xi]:
-                if stored_zi != zi:
-                    # 检测到双重支付
-                    if zi == 0 and stored_zi == 1:
-                        xi_1, ai_1, yi_1 = stored_data
-                        ai_exp_2 = data[1]
-                        u_value = recover_u_from_data(ai_exp_2, ai_1)
-                    elif zi == 1 and stored_zi == 0:
-                        ai_exp_1 = stored_data[1]
-                        ai_2 = data[1]
-                        u_value = recover_u_from_data(ai_exp_1, ai_2)
-                    else:
-                        continue
-
+        if zi == 0:
+            #对每个数据异或
+            for _,data_stored in transaction_store:
+                u_value = recover_u_from_data(data[1], data_stored[0])
+                #查找是否有双花者
+                if u_value in users:
+                    double_spending_detected = True
+                    break         
+            
+        else:
+            for _,data_stored in transaction_store:
+                u_value = recover_u_from_data(data_stored[1], data[0])
+                
+                if u_value in users:
                     double_spending_detected = True
                     break
 
@@ -96,16 +95,34 @@ def verify_transaction():
         if transactions["store"]:
             pickle.dump(transaction_store, open("transaction_store.pickle", "wb"))
 
+          
     if double_spending_detected:
         return jsonify({'status': 'failed', 'error': 'Double spending detected', 'payer_identity': u_value}), 400
 
+    #确认无双花之后进行存储
+    for transaction in transactions:
+        zi = transaction['zi']
+        data = transaction['data']
+        transaction_store.append((zi, data))
+
+
+    #if transactions["store"]:
+        #pickle.dump(transaction_store, open("transaction_store.pickle", "wb"))
+    
     return jsonify({'status': 'success'})
 
-def recover_u_from_data(ai_exp_hex, ai):
+def recover_u_from_data(ai_exp_hex: str, ai):
     # ai_exp = ai ** (u || (v + i))
     # 因此 (ai_exp ** ai) = u || (v + i)
-    ai_bytes = ai.encode('utf-8')
-    ai_exp_bytes = bytes.fromhex(ai_exp_hex)
+    if is_hex_string(ai):
+        ai_bytes = bytes.fromhex(ai)
+    else:    
+        ai_bytes = ai.encode('utf-8')
+
+    if is_hex_string(ai_exp_hex):
+        ai_exp_bytes = bytes.fromhex(ai_exp_hex)
+    else:
+        ai_exp_bytes = ai_exp_hex.encode('utf-8') 
 
     # 异或恢复 u_v_i
     u_v_i_bytes = bytes(a ^ b for a, b in zip(ai_exp_bytes, ai_bytes))
@@ -115,6 +132,10 @@ def recover_u_from_data(ai_exp_hex, ai):
     u_bytes = u_v_i_bytes[:u_length]
     u = u_bytes.decode('utf-8', errors='ignore')
     return u
+
+def is_hex_string(s):
+    return re.fullmatch(r'[0-9a-fA-F]+', s) is not None
+
 
 if __name__ == "__main__":
     app.run(port=5000)
